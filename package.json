@@ -13,7 +13,9 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.12.3",
+		"@pinecone-database/pinecone": "^6.1.1",
 		"agents": "^0.0.95",
+		"voyageai": "^0.0.4",
 		"zod": "^3.25.67"
 	},
 	"devDependencies": {

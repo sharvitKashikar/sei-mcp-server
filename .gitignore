@@ -1,6 +1,9 @@
 # Logs
 
 logs
+
+.dev.vars
+
 _.log
 npm-debug.log_
 yarn-debug.log*
