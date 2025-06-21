@@ -10,7 +10,7 @@ const commonHdr = {
 
 
 
-const mcpHeaders = { ...commonHdr, 'Mcp-Session-Id': "16d6aa3c58bff8de47fdffb5322e24e4e88383fdb3ee23923b7eb2ec40abbb42" };
+const mcpHeaders = { ...commonHdr, 'Mcp-Session-Id': "69ee353e2f9adc67f93b762cbc045184b615d0502bbb5ccdf13e5c9d42bdbe2c" };
 // ────────────────────────────────────────────────────────────────────
 
   

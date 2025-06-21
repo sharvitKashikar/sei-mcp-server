@@ -144,16 +144,32 @@ export class ByteBellAgent {
 		
 		if (!hasCodeKeywords) {
 			try {
-				const prompt = `Analyze if this query requires code examples or implementation details:
-				Query: "${query}"
+				const prompt = `You are a strict classifier.
 
-				Consider:
-				- Does the user want to see actual code?
-				- Are they asking about implementation details?
-				- Do they need programming examples?
-				- Are they asking "how to" questions that would benefit from code?
+				TASK  
+				Decide whether the user **explicitly** requests *source code* or *hands-on programming instructions*.
+				
+				OUTPUT  
+				Respond with **only** one token: **YES** or **NO** (uppercase, no extra text).
+				
+				WHEN TO ANSWER **YES**  
+				– The query contains clear code-seeking language such as  
+				  "code", "code example", "code sample", "snippet",  
+				  "show me how to ⟨verb⟩", "implementation", "write",  
+				  "build", "deploy", "create the contract", "step-by-step code", etc.  
+				– The user asks for a “how to” *and* indicates they want real code or CLI commands.
+				
+				WHEN TO ANSWER **NO**  
+				– The query is purely conceptual/architectural (e.g. “How does SEI EVM work?”).  
+				– Mentioning technical terms (EVM, API, SDK, etc.) **without** an explicit code request.  
+				– The user wants explanations, comparisons, theory, or general discussion only.
+				
+				REMEMBER  
+				- Do **not** infer a need for code from context; the request must be explicit.  
+				- Ignore polite words (“please”), context captions, or prior conversation; judge this query alone.
+				
+				QUERY: “${query}”`;
 
-				Respond with only: YES or NO`;
 
 				const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 					method: 'POST',

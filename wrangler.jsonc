@@ -10,6 +10,14 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "MyMCP",
+				"name": "MCP_OBJECT"
+			}
+		]
+	},
 	"migrations": [
 		{
 			"new_sqlite_classes": [
@@ -48,7 +56,7 @@
 		  },
 		  "limits": { "cpu_ms": 50000 },
 		  "name": "sei-mcp-server-dev"   // 👈 just the key name
-		}
+		},
 	  }
 
 	/**
