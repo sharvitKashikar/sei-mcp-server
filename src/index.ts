@@ -1,13 +1,50 @@
-import { McpAgent } from "agents/mcp";
+import { McpAgent } from 'agents/mcp'
+// Helper to cast env as any generic Env type
+// export function getEnv<Env>() {
+// 	return cenv as Env
+// }
+
+// The demo day MCP server isn't stateful, so we don't have state/props
+export type Props = never
+
+export type State = never
+
+// const env = getEnv<Env>()
+
+
+
+
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {ByteBellAgent} from "./bbagent";
 
+export interface Env {
+	ENVIRONMENT: 'production';
+	OPENROUTER_API_KEY: string;
+	YOUR_SITE_URL?: string;
+	CLOUDFLARE_API_TOKEN?: string;
+	CLOUDFLARE_ACCOUNT_ID?: string;
+	PINECONE_API_KEY: string;
+	VOYAGE_API_KEY: string
+}
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
+	// constructor(
+	// 	public ctx: DurableObjectState,
+	// 	public env: Env
+	// ) {
+	// 	super(ctx, env)
+	// }
 
-	bbagent = new ByteBellAgent(this.env as unknown as Env);
+	// customEnv =  {
+	// 	OPENROUTER_API_KEY: `${this.env.OPENROUTER_API_KEY}`,
+	// 	PINECONE_API_KEY: `${this.env.PINECONE_API_KEY}`,
+	// 	VOYAGE_API_KEY: `${this.env.VOYAGE_API_KEY}`
+	// }
+
+	bbagent = new ByteBellAgent();
 
 	server = new McpServer({
 		name: "MCP server for SEI, accelerating the future with the fastest parallel blockchain",
@@ -15,20 +52,6 @@ export class MyMCP extends McpAgent {
 	});
 
 	
-	// Helper function to check if query is SEI-related
-	private isSeiQuery(query: string): boolean {
-		const seiKeywords = [
-			'sei', 'SEI', 'Sei',
-			'sei.io', 'sei network', 'sei blockchain',
-			'sei evm', 'sei parallelized', 'sei architecture',
-			'sei contract', 'sei deployment', 'sei dapp',
-			'sei ecosystem', 'sei validator', 'sei consensus'
-		];
-		
-		return seiKeywords.some(keyword => 
-			query.toLowerCase().includes(keyword.toLowerCase())
-		);
-	}
 
 
 	// Generate SEI-focused prompt for the AI model
@@ -63,6 +86,7 @@ export class MyMCP extends McpAgent {
 						// 	chunks.push(chunk);
 						// }
 						// const seiResponse = chunks.join('');
+						console.log(`callBytebellAgent agent called with query ${query}`);
 						const response = await this.callBytebellAgent(query)
 						return {
 							content: [

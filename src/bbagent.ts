@@ -5,14 +5,19 @@ import {createPineconeClient} from "./vector/pinecone";
 
 // Store env reference for use in tools
 // Define environment interface for Cloudflare Worker bindings
-interface Env {
-	OPENROUTER_API_KEY: string;
-	YOUR_SITE_URL?: string;
-	CLOUDFLARE_API_TOKEN?: string;
-	CLOUDFLARE_ACCOUNT_ID?: string;
-	PINECONE_API_KEY: string;
-	VOYAGE_API_KEY: string
-}
+// interface Env {
+// 	OPENROUTER_API_KEY: string;
+// 	YOUR_SITE_URL?: string;
+// 	CLOUDFLARE_API_TOKEN?: string;
+// 	CLOUDFLARE_ACCOUNT_ID?: string;
+// 	PINECONE_API_KEY: string;
+// 	VOYAGE_API_KEY: string
+// }
+
+
+const PINECONE_API_KEY="";
+const VOYAGE_API_KEY="";
+const OPENROUTER_API_KEY="";
 
 export class ByteBellAgent {
 
@@ -21,9 +26,10 @@ export class ByteBellAgent {
 	private pineconeClient;
 	private voyageAiClient;
 	private config: any;
-	private env: Env;
-	constructor(env: any){
-		this.env = env as unknown as Env
+	// private env: Env;
+	
+	constructor(){
+		// this.env = env as unknown as Env
 		this.config =  {
 			"indexName": "bytebell-prod-v2",
 			"namespaces": {
@@ -32,8 +38,8 @@ export class ByteBellAgent {
 			}
 		};
 
-		this.pineconeClient = createPineconeClient(this.env.PINECONE_API_KEY)
-		this.voyageAiClient = createEmbedder(this.env.VOYAGE_API_KEY)
+		this.pineconeClient = createPineconeClient(PINECONE_API_KEY)
+		this.voyageAiClient = createEmbedder(VOYAGE_API_KEY)
 		this.metaRetriever = new MetaRetriever(
 			this.pineconeClient,
 			this.config.indexName,
@@ -52,6 +58,7 @@ export class ByteBellAgent {
 		keywords: string[]
 	  ): Promise<string> {
 		try {
+
 		  if (metaResults.length === 0) return originalQuery;
 	
 		  // Format meta context for LLM analysis
@@ -80,11 +87,11 @@ export class ByteBellAgent {
 			const ai_response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${this.env.OPENROUTER_API_KEY}`,
+					'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					model: 'google/gemini-2.0-flash-lite-001',
+					model: 'google/gemini-2.0-flash-lite-001:nitro',
 					messages: [
 						{
 							role: 'user',
@@ -119,25 +126,104 @@ export class ByteBellAgent {
 		  return `${originalQuery} ${metaContext} ${topKeywords}`.trim();
 		}
 	  }
-		
 
+	  // ADD new private method in ByteBellAgent class
+	private async analyzeQueryForCodeRelevance(query: string): Promise<boolean> {
+		const codeKeywords = [
+			'code', 'function', 'class', 'method', 'implementation', 'syntax',
+			'programming', 'script', 'algorithm', 'debug', 'error', 'bug',
+			'example', 'snippet', 'repository', 'github', 'commit', 'pull request',
+			'API', 'endpoint', 'library', 'framework', 'package', 'module',
+			'variable', 'parameter', 'return', 'import', 'export', 'console',
+			'typescript', 'javascript', 'python', 'java', 'rust', 'go',
+			'how to implement', 'show me code', 'code example', 'sample code'
+		];
+
+		const queryLower = query.toLowerCase();
+		const hasCodeKeywords = codeKeywords.some(keyword => queryLower.includes(keyword));
+		
+		if (!hasCodeKeywords) {
+			try {
+				const prompt = `Analyze if this query requires code examples or implementation details:
+				Query: "${query}"
+
+				Consider:
+				- Does the user want to see actual code?
+				- Are they asking about implementation details?
+				- Do they need programming examples?
+				- Are they asking "how to" questions that would benefit from code?
+
+				Respond with only: YES or NO`;
+
+				const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+					method: 'POST',
+					headers: {
+						'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						model: 'google/gemini-2.0-flash-lite-001',
+						messages: [{ role: 'user', content: prompt }],
+						stream: false,
+						max_tokens: 10,
+						temperature: 0.1
+					})
+				});
+
+				const result = await response.json();
+				const needsCode = result.choices[0].message.content.trim().toUpperCase() === 'YES';
+				console.log(`LLM code analysis: ${needsCode ? 'INCLUDE' : 'EXCLUDE'} code sources`);
+				return needsCode;
+				
+			} catch (error) {
+				console.log(`LLM code analysis failed, using keyword fallback: ${error}`);
+				return hasCodeKeywords;
+			}
+		}
+		
+		console.log(`Keyword-based code analysis: ${hasCodeKeywords ? 'INCLUDE' : 'EXCLUDE'} code sources`);
+		return hasCodeKeywords;
+	}
+
+	private createFilterConfig(includeCode: boolean): any {
+		if (includeCode) {
+			return {
+				"datasource": {
+					"$in": ["PDF", "WEBSITE", "CUSTOM", "GITHUB"]
+				}
+			};
+		
+		} else {
+			return {
+				"datasource": {
+					"$in": ["PDF", "WEBSITE", "CUSTOM"]
+				}
+			};
+		}
+	}
 	async retrieve(
 		input: string,
 		options?: any
 	  ): Promise<string> {
 		const query = input;
-		console.log(`:mag: Combined search for: "${query.slice(0, 70)}..."`);
+		console.log(`Retrieve reached called with query ${query}`)
+
 		try {
+			const includeCode = await this.analyzeQueryForCodeRelevance(query);
+			const filter = this.createFilterConfig(includeCode);
+			console.log(`Filter strategy: ${filter} `);
 		  // Phase 1: Meta search for high-level context
+		//   const filter = {
+		// 	"datasource": {
+		// 		"$in": ["PDF", "WEBSITE", "CUSTOM"]
+		// 	} 
+		// };
+
 		  const metaResults = await this.metaRetriever.search({
 			query,
 			namespace: this.config.namespaces.meta,
 			topK: 20,
-			filter: {
-				"datasource": {
-					"$in": ["PDF", "WEBSITE", "CUSTOM"]
-				} 
-			},
+			filter: filter,
 			scoreThreshold: this.config.scoreThreshold || 0.1,
 		  });
 
@@ -155,11 +241,7 @@ export class ByteBellAgent {
 			query: eQuery,
 			namespace: this.config.namespaces.base,
 			topK: 20,
-			filter: {
-				"datasource": {
-					"$in": ["PDF", "WEBSITE", "CUSTOM"]
-				} 
-			},
+			filter: filter,
 			scoreThreshold: this.config.scoreThreshold || 0.1,
 		  });
 		  console.log(`:books: Base search found ${baseResults.results} results`);
