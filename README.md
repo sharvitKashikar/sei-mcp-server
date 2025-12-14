@@ -1,127 +1,23 @@
-# sei-mcp-server
+# ByteBellAgent: Intelligent Query Enhancement
 
-## Wrangler Configuration with OpenRouter API Key
+This repository houses the backend services for the ByteBell project, focusing on advanced information retrieval and query processing.
 
-### 1. Local Development Configuration
+## Core Components
 
-#### Create `wrangler.toml`
-```toml
-name = "your-worker-name"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
+### ByteBellAgent
 
-[vars]
-# Public environment variables (non-sensitive)
-ENVIRONMENT = "development"
-API_BASE_URL = "https://openrouter.ai/api/v1"
+The `ByteBellAgent` is a pivotal component responsible for intelligent query enhancement and document retrieval. It leverages both meta-level and base-level information to refine user queries and fetch more accurate results. This class integrates with vector databases (Pinecone) and embedding services (VoyageAI) to provide contextual understanding and efficient data retrieval.
 
-# For local development, you can also define secrets here
-# but they'll be overridden by .dev.vars
-```
+For an in-depth understanding of its functionality, configuration, and usage, please refer to the [ByteBellAgent Documentation](docs/ByteBellAgent.md).
 
-#### Create `.dev.vars` for Local Secrets
-```bash
-# .dev.vars (for local development only)
-OPENROUTER_API_KEY=your_actual_api_key_here
-```
+### Retrievers
 
-#### Add to `.gitignore`
-```gitignore
-.dev.vars
-```
+The system utilizes specialized retrievers:
+*   **MetaRetriever**: Focuses on retrieving high-level, structural, or conceptual information related to the query.
+*   **BaseRetriever**: Handles the retrieval of detailed, content-specific information.
 
-### 2. Production Secrets Management
+These retrievers work in conjunction with the `ByteBellAgent` to provide a comprehensive search experience.
 
-#### Set Production Secret
-```bash
-# Set the secret for production
-npx wrangler secret put OPENROUTER_API_KEY
+---
 
-# You'll be prompted to enter the key value
-```
-
-#### Or set it directly
-```bash
-echo "your_actual_api_key" | npx wrangler secret put OPENROUTER_API_KEY
-```
-
-### 3. Using in Your Worker Code
-
-```javascript
-export default {
-  async fetch(request, env, ctx) {
-    // Access the API key from environment
-    const apiKey = env.OPENROUTER_API_KEY;
-    
-    // Use it in your API calls
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // your request body
-      })
-    });
-    
-    return response;
-  }
-};
-```
-
-### 4. Environment-Specific Configuration
-
-#### For different environments
-```toml
-# wrangler.toml
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
-
-[env.production]
-vars = { ENVIRONMENT = "production" }
-```
-
-#### Deploy to specific environments
-```bash
-# Deploy to staging
-npx wrangler deploy --env staging
-
-# Set secrets for specific environments
-npx wrangler secret put OPENROUTER_API_KEY --env production
-```
-
-### 5. Alternative: Using Environment Variables
-
-```bash
-# List current secrets
-npx wrangler secret list
-
-# Delete a secret
-npx wrangler secret delete OPENROUTER_API_KEY
-```
-
-[]
-➜  sei-mcp-server git:(main) ✗ npx wrangler secret put OPENROUTER_API_KEY --env production
-
-(node:23941) ExperimentalWarning: CommonJS module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-Support for loading ES Module in require() is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
-
- ⛅️ wrangler 4.20.5
-───────────────────
-✔ Enter a secret value: … *************************************************************************
-🌀 Creating the secret for the Worker "sei-mcp-server"
-✨ Success! Uploaded secret OPENROUTER_API_KEY
-➜  sei-mcp-server git:(main) ✗ npx wrangler secret list --env production
-
-(node:23975) ExperimentalWarning: CommonJS module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-Support for loading ES Module in require() is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
-[
-  {
-    "name": "OPENROUTER_API_KEY",
-    "type": "secret_text"
-  }
-]
-➜  sei-mcp-server git:(main) ✗ npx wrangler deploy --env production
+*(... rest of the README content ...)*
