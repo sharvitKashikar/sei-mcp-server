@@ -1,127 +1,104 @@
 # sei-mcp-server
 
-## Wrangler Configuration with OpenRouter API Key
+This repository houses the backend services and intelligent agents for the Sei Multi-Chain Platform (MCP) server. It integrates various tools and strategies to provide robust functionalities, from data retrieval to strategic decision-making.
 
-### 1. Local Development Configuration
+## Features
 
-#### Create `wrangler.toml`
-```toml
-name = "your-worker-name"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
+*   **ByteBell Agent**: An advanced knowledge retrieval agent that fetches information from a knowledge base.
+*   **Startup Strategy Agent**: A rule-based intelligent agent designed to analyze startup metrics, assess financial risk and runway, and provide market insights and strategic recommendations.
+    *   [Learn more about the Startup Strategy Agent](docs/StartupStrategyAgent.md)
 
-[vars]
-# Public environment variables (non-sensitive)
-ENVIRONMENT = "development"
-API_BASE_URL = "https://openrouter.ai/api/v1"
+## Core Technologies
 
-# For local development, you can also define secrets here
-# but they'll be overridden by .dev.vars
+*   Node.js/TypeScript
+*   Express.js (for API endpoints, if applicable)
+*   Vector Databases / Knowledge Bases (for ByteBell Agent)
+
+## Getting Started
+
+### Prerequisites
+
+*   Node.js (v18 or higher)
+*   npm or yarn
+
+### Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/sharvitKashikar/sei-mcp-server.git
+    cd sei-mcp-server
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    # or yarn install
+    ```
+
+### Running the Server (if applicable)
+
+*(Add instructions here if the server can be run directly, e.g., how to start an Express server, if any. Currently, the agents seem to be callable directly.)*
+
+## Usage Examples
+
+### ByteBell Agent Example
+
+```typescript
+import { ByteBellAgent } from './src/agent/bytebellAgent'; // Assuming path
+
+const agent = new ByteBellAgent();
+async function runByteBellAgent() {
+    const query = "How sei EVM works";
+    const response = await agent.retrieve(query);
+    console.log(response);
+}
+
+runByteBellAgent();
 ```
 
-#### Create `.dev.vars` for Local Secrets
-```bash
-# .dev.vars (for local development only)
-OPENROUTER_API_KEY=your_actual_api_key_here
-```
+### Startup Strategy Agent Example
 
-#### Add to `.gitignore`
-```gitignore
-.dev.vars
-```
+```typescript
+import { StartupStrategyAgent } from './src/org'; // Assuming path based on org.ts
 
-### 2. Production Secrets Management
-
-#### Set Production Secret
-```bash
-# Set the secret for production
-npx wrangler secret put OPENROUTER_API_KEY
-
-# You'll be prompted to enter the key value
-```
-
-#### Or set it directly
-```bash
-echo "your_actual_api_key" | npx wrangler secret put OPENROUTER_API_KEY
-```
-
-### 3. Using in Your Worker Code
-
-```javascript
-export default {
-  async fetch(request, env, ctx) {
-    // Access the API key from environment
-    const apiKey = env.OPENROUTER_API_KEY;
-    
-    // Use it in your API calls
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // your request body
-      })
-    });
-    
-    return response;
-  }
+const agent = new StartupStrategyAgent();
+const metrics = {
+    name: "InnovateCo",
+    users: 50000,
+    revenue: 150000,
+    monthlyBurn: 50000,
+    funding: 1200000,
+    churnRate: 2.5
 };
+
+const decision = agent.analyze(metrics);
+console.log(decision);
+/*
+Example Output:
+{
+  risk: 'MEDIUM',
+  runwayMonths: 24,
+  marketStage: 'Growing market',
+  recommendation: 'Focus on scaling user acquisition while maintaining low churn. Explore next funding round within 12 months.',
+  timestamp: Date object
+}
+*/
 ```
 
-### 4. Environment-Specific Configuration
+## Project Structure
 
-#### For different environments
-```toml
-# wrangler.toml
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
-
-[env.production]
-vars = { ENVIRONMENT = "production" }
+```
+.github/
+src/
+├── agent/
+│   └── bytebellAgent.ts
+├── org.ts
+└── ... (other source files)
+test/
+... (other project files)
 ```
 
-#### Deploy to specific environments
-```bash
-# Deploy to staging
-npx wrangler deploy --env staging
+This structure prioritizes modularity and separation of concerns, allowing for independent development and testing of components like the `ByteBellAgent` and `StartupStrategyAgent`.
 
-# Set secrets for specific environments
-npx wrangler secret put OPENROUTER_API_KEY --env production
-```
+## Contributing
 
-### 5. Alternative: Using Environment Variables
-
-```bash
-# List current secrets
-npx wrangler secret list
-
-# Delete a secret
-npx wrangler secret delete OPENROUTER_API_KEY
-```
-
-[]
-➜  sei-mcp-server git:(main) ✗ npx wrangler secret put OPENROUTER_API_KEY --env production
-
-(node:23941) ExperimentalWarning: CommonJS module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-Support for loading ES Module in require() is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
-
- ⛅️ wrangler 4.20.5
-───────────────────
-✔ Enter a secret value: … *************************************************************************
-🌀 Creating the secret for the Worker "sei-mcp-server"
-✨ Success! Uploaded secret OPENROUTER_API_KEY
-➜  sei-mcp-server git:(main) ✗ npx wrangler secret list --env production
-
-(node:23975) ExperimentalWarning: CommonJS module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-Support for loading ES Module in require() is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
-[
-  {
-    "name": "OPENROUTER_API_KEY",
-    "type": "secret_text"
-  }
-]
-➜  sei-mcp-server git:(main) ✗ npx wrangler deploy --env production
+Contributions are welcome! Please refer to our `CONTRIBUTING.md` (if exists) for guidelines.
