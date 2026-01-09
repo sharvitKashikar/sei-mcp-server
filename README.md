@@ -1,127 +1,77 @@
-# sei-mcp-server
+# MCP Server for SEI (Authless)
 
-## Wrangler Configuration with OpenRouter API Key
+This repository contains an authless Model Context Protocol (MCP) server designed to provide contextual information and accelerate interactions with the SEI blockchain.
 
-### 1. Local Development Configuration
+## Project Overview
 
-#### Create `wrangler.toml`
-```toml
-name = "your-worker-name"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
+This server is implemented as a Cloudflare Worker that integrates the `@modelcontextprotocol/sdk` to expose a `ByteBellAgent`. The `ByteBellAgent` is responsible for retrieving and synthesizing information from a vector database (Pinecone) using embeddings (VoyageAI) to answer queries related to SEI.
 
-[vars]
-# Public environment variables (non-sensitive)
-ENVIRONMENT = "development"
-API_BASE_URL = "https://openrouter.ai/api/v1"
+### Core Components:
 
-# For local development, you can also define secrets here
-# but they'll be overridden by .dev.vars
+-   **`ByteBellAgent`**: The main agent handling user queries by interacting with specialized retrievers.
+-   **`MetaRetriever`**: Responsible for searching metadata within the Pinecone index, used to enhance initial queries.
+-   **`BaseRetriever`**: Performs the primary content search within the Pinecone index using enhanced queries.
+-   **`src/retrievers/utils.ts`**: Provides utility functions for constructing advanced Pinecone metadata filters.
+-   **`src/index.ts`**: Sets up the MCP server and registers the `bytebell_agent` tool, which orchestrates calls to the `ByteBellAgent`.
+
+## Setup and Environment Variables
+
+To run this project, you need to configure several environment variables, typically managed by Cloudflare Workers (e.g., in a `.dev.vars` file for local development or set directly in your Cloudflare dashboard for deployment).
+
+Required environment variables:
+
+-   `PINECONE_API_KEY`: API key for accessing the Pinecone vector database.
+-   `VOYAGE_API_KEY`: API key for the VoyageAI embedding service.
+-   `OPENROUTER_API_KEY`: API key for the OpenRouter LLM service (used by the `ByteBellAgent`).
+
+Example `.dev.vars` file:
+
+```env
+PINECONE_API_KEY="your_pinecone_api_key"
+VOYAGE_API_KEY="your_voyageai_api_key"
+OPENROUTER_API_KEY="your_openrouter_api_key"
+ENVIRONMENT="production"
 ```
 
-#### Create `.dev.vars` for Local Secrets
-```bash
-# .dev.vars (for local development only)
-OPENROUTER_API_KEY=your_actual_api_key_here
+## Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/sharvitKashikar/sei-mcp-server.git
+    cd sei-mcp-server
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+## Available Scripts
+
+-   `npm run dev`: Starts a local development server using `wrangler dev`. This will simulate the Cloudflare Worker environment.
+-   `npm run deploy`: Deploys the worker to Cloudflare using `wrangler deploy`.
+-   `npm run format`: Formats the codebase using Biome (`biome format --write`).
+-   `npm run lint:fix`: Lints and fixes issues in the codebase using Biome (`biome lint --fix`).
+-   `npm run cf-typegen`: Generates Cloudflare Worker types (`wrangler types`).
+-   `npm run type-check`: Performs a TypeScript type check without emitting files (`tsc --noEmit`).
+
+## Usage
+
+Once deployed or running locally, the MCP server will expose an API endpoint that can be interacted with using the `@modelcontextprotocol/sdk` client. The `bytebell_agent` tool can be invoked with a `query` to retrieve SEI-related information.
+
+Example (conceptual interaction):
+
+```typescript
+import { McpClient } from '@modelcontextprotocol/sdk/client';
+
+const client = new McpClient({
+  url: 'YOUR_CLOUDflare_WORKER_URL',
+});
+
+async function getSeiInfo(query: string) {
+  const response = await client.callTool('bytebell_agent', { query });
+  console.log(response.output);
+}
+
+// Example query
+// getSeiInfo('What is the latest upgrade on Sei blockchain?');
 ```
-
-#### Add to `.gitignore`
-```gitignore
-.dev.vars
-```
-
-### 2. Production Secrets Management
-
-#### Set Production Secret
-```bash
-# Set the secret for production
-npx wrangler secret put OPENROUTER_API_KEY
-
-# You'll be prompted to enter the key value
-```
-
-#### Or set it directly
-```bash
-echo "your_actual_api_key" | npx wrangler secret put OPENROUTER_API_KEY
-```
-
-### 3. Using in Your Worker Code
-
-```javascript
-export default {
-  async fetch(request, env, ctx) {
-    // Access the API key from environment
-    const apiKey = env.OPENROUTER_API_KEY;
-    
-    // Use it in your API calls
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // your request body
-      })
-    });
-    
-    return response;
-  }
-};
-```
-
-### 4. Environment-Specific Configuration
-
-#### For different environments
-```toml
-# wrangler.toml
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
-
-[env.production]
-vars = { ENVIRONMENT = "production" }
-```
-
-#### Deploy to specific environments
-```bash
-# Deploy to staging
-npx wrangler deploy --env staging
-
-# Set secrets for specific environments
-npx wrangler secret put OPENROUTER_API_KEY --env production
-```
-
-### 5. Alternative: Using Environment Variables
-
-```bash
-# List current secrets
-npx wrangler secret list
-
-# Delete a secret
-npx wrangler secret delete OPENROUTER_API_KEY
-```
-
-[]
-➜  sei-mcp-server git:(main) ✗ npx wrangler secret put OPENROUTER_API_KEY --env production
-
-(node:23941) ExperimentalWarning: CommonJS module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-Support for loading ES Module in require() is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
-
- ⛅️ wrangler 4.20.5
-───────────────────
-✔ Enter a secret value: … *************************************************************************
-🌀 Creating the secret for the Worker "sei-mcp-server"
-✨ Success! Uploaded secret OPENROUTER_API_KEY
-➜  sei-mcp-server git:(main) ✗ npx wrangler secret list --env production
-
-(node:23975) ExperimentalWarning: CommonJS module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/sauravverma/.nvm/versions/node/v23.3.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-Support for loading ES Module in require() is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
-[
-  {
-    "name": "OPENROUTER_API_KEY",
-    "type": "secret_text"
-  }
-]
-➜  sei-mcp-server git:(main) ✗ npx wrangler deploy --env production
